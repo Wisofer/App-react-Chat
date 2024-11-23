@@ -1,64 +1,108 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
+import { FaPaperPlane, FaUserCircle, FaSmile } from "react-icons/fa";
+import Picker from "emoji-picker-react";
 
 const socket = io("/");
 
-const App = () => {
-  const [mensaje, setMensaje] = useState('');
-  const [newMensaje, setNewmensaje] = useState([]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newwMensaje = {
-      body: mensaje,
-      from: "yo",
-    };
-    setNewmensaje([...newMensaje, newwMensaje]);
-    socket.emit("mensaje", mensaje);
-    setMensaje(""); // Restablecer el valor del input a una cadena vacía
-  };
+export default function App() {
+  const [messages, setMessages] = useState([]);
+  const [message, setMessage] = useState("");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    socket.on("mensaje", resivirMensaje);
-
+    socket.on("message", receiveMessage);
+    
     return () => {
-      socket.off("mensaje", resivirMensaje);
+      socket.off("message", receiveMessage);
     };
   }, []);
 
-  const resivirMensaje = (mensaje) =>
-    setNewmensaje((state) => [...state, mensaje]);
+  const receiveMessage = (message) =>
+    setMessages((state) => [...state, message]);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const newMessage = {
+      body: message,
+      from: "Me",
+    };
+    setMessages((state) => [...state, newMessage]);
+    setMessage("");
+    socket.emit("message", newMessage.body);
+  };
+
+  const onEmojiClick = (event, emojiObject) => {
+    setMessage((prevMessage) => prevMessage + emojiObject.emoji);
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   return (
-    <div className="h-screen bg-zinc-800 text-white flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="bg-zinc-900 p-10">
-        <h1 className="text-2xl font-bold my-2">Chat wiso</h1>
-        <div className="flex">
-          <input
-            onChange={(e) => setMensaje(e.target.value)}
-            type="text"
-            placeholder="Envie un mensaje"
-            className="border-2 border-zinc-500 p-2 w-full text-black mr-2 "
-          />
-          <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full">
-            Enviar
-          </button>
-        </div>
-        <ul>
-          {newMensaje.map((item, i) => (
-            <li
-              key={i}
-              className={`my-2 p-2 table text-sm rounded-md ${
-                item.from === "yo" ? "bg-blue-500 text-white " : "bg-gray-500 text-black ml-auto "
+    <div className="h-screen bg-gradient-to-r from-indigo-500 to-pink-500 text-white flex flex-col justify-between items-center p-4">
+      <h1 className="text-4xl font-bold mb-4 text-center text-white">
+        Chat Formal
+      </h1>
+      <ul className="flex-grow w-full max-w-lg overflow-y-auto bg-white rounded-lg shadow-lg p-4 mb-4 flex flex-col-reverse">
+        {messages.map((message, index) => (
+          <li
+            key={index}
+            className={`mb-4 ${
+              message.from === "Me" ? "text-right" : "text-left"
+            }`}
+          >
+            <div
+              className={`inline-block p-3 rounded-lg ${
+                message.from === "Me"
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-gray-800"
               }`}
             >
-              {item.from} : {item.body}
-            </li>
-          ))}
-        </ul>
+              <span>
+                {message.from === "Me" ? (
+                  <b className="text-gray-800">Yo</b>
+                ) : (
+                  <b className="text-gray-800">Amigos</b> // Alias amigable para otros usuarios
+                )}
+                : {message.body}
+              </span>
+            </div>
+          </li>
+        ))}
+        <div ref={messagesEndRef} />
+      </ul>
+
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg bg-white p-4 rounded-lg shadow-lg flex items-center"
+      >
+        <input
+          name="message"
+          type="text"
+          placeholder="Escribe tu mensaje..."
+          onChange={(e) => setMessage(e.target.value)}
+          className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+          value={message}
+          autoFocus
+        />
+        <button
+          type="button"
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="flex-shrink-0 bg-yellow-500 hover:bg-yellow-700 border-yellow-500 hover:border-yellow-700 text-sm border-4 text-white py-1 px-2 rounded"
+        >
+          <FaSmile />
+        </button>
+        <button
+          type="submit"
+          className="flex-shrink-0 bg-blue-500 hover:bg-blue-700 border-blue-500 hover:border-blue-700 text-sm border-4 text-white py-1 px-2 rounded"
+        >
+          <FaPaperPlane />
+        </button>
       </form>
+      {showEmojiPicker && <Picker onEmojiClick={onEmojiClick} />}
     </div>
   );
-};
-
-export default App;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
-import { FaPaperPlane, FaUserCircle, FaSmile } from "react-icons/fa";
+import { FaPaperPlane, FaSmile } from "react-icons/fa";
 import Picker from "emoji-picker-react";
 
 const socket = io("/");
@@ -11,9 +11,10 @@ export default function App() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // Recibir mensajes del servidor
   useEffect(() => {
     socket.on("message", receiveMessage);
-    
+
     return () => {
       socket.off("message", receiveMessage);
     };
@@ -22,6 +23,7 @@ export default function App() {
   const receiveMessage = (message) =>
     setMessages((state) => [...state, message]);
 
+  // Enviar mensajes al servidor
   const handleSubmit = (event) => {
     event.preventDefault();
     const newMessage = {
@@ -33,10 +35,12 @@ export default function App() {
     socket.emit("message", newMessage.body);
   };
 
-  const onEmojiClick = (event, emojiObject) => {
-    setMessage((prevMessage) => prevMessage + emojiObject.emoji);
+  // Añadir emoji al mensaje
+  const onEmojiClick = (emojiData) => {
+    setMessage((prevMessage) => prevMessage + emojiData.emoji);
   };
 
+  // Desplazar automáticamente al último mensaje
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -46,7 +50,7 @@ export default function App() {
       <h1 className="text-4xl font-bold mb-4 text-center text-white">
         Chat Formal
       </h1>
-      <ul className="flex-grow w-full max-w-lg overflow-y-auto bg-white rounded-lg shadow-lg p-4 mb-4 flex flex-col-reverse">
+      <ul className="flex-grow w-full max-w-lg overflow-y-auto bg-white rounded-lg shadow-lg p-4 mb-4 flex flex-col">
         {messages.map((message, index) => (
           <li
             key={index}
@@ -65,7 +69,7 @@ export default function App() {
                 {message.from === "Me" ? (
                   <b className="text-gray-800">Yo</b>
                 ) : (
-                  <b className="text-gray-800">Amigos</b> // Alias amigable para otros usuarios
+                  <b className="text-gray-800">Amigos</b>
                 )}
                 : {message.body}
               </span>
